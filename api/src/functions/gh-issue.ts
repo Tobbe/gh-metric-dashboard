@@ -28,8 +28,8 @@ export const handler = async (event: APIGatewayEvent, _context: Context) => {
         url: payload.issue.url,
         title: payload.issue.title,
         authorAssociation: payload.issue.author_association,
-        created_at: payload.issue.created_at,
-        updated_at: payload.issue.updated_at,
+        createdAt: payload.issue.created_at,
+        updatedAt: payload.issue.updated_at,
       },
       select: {
         number: true,
@@ -37,12 +37,13 @@ export const handler = async (event: APIGatewayEvent, _context: Context) => {
     })
     logger.info(`Issue #${row.number} created`)
   } else if (payload.action === 'closed') {
+    // TODO: In theory webhooks could be received out of order...
     const row = await db.issue.update({
       where: {
         id: payload.issue.id,
       },
       data: {
-        closed_at: payload.issue.closed_at,
+        closedAt: payload.issue.closed_at,
       },
       select: {
         number: true,

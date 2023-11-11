@@ -24,6 +24,8 @@ export const handler = async (event: APIGatewayEvent, _context: Context) => {
   )
 
   if (payload.action === 'created') {
+    // Have to create the issue if it doesn't exist because the webhooks may
+    // arrive out of order
     const row = await db.issueComment.create({
       data: {
         Issue: {
@@ -34,8 +36,8 @@ export const handler = async (event: APIGatewayEvent, _context: Context) => {
               url: payload.issue.url,
               title: payload.issue.title,
               authorAssociation: payload.issue.author_association,
-              created_at: payload.issue.created_at,
-              updated_at: payload.issue.updated_at,
+              createdAt: payload.issue.created_at,
+              updatedAt: payload.issue.updated_at,
             },
             where: {
               id: payload.issue.id,
