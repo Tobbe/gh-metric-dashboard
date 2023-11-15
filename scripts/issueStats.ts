@@ -27,30 +27,11 @@ export default async () => {
     auth: process.env.GITHUB_TOKEN,
   })
 
-  const { data } = await octokit.rest.search.issuesAndPullRequests({
-    q: `repo:redwoodjs/redwood created:2022-11-01..2022-11-30`,
-    per_page: 100, // 100 seems to be the max
-  })
-
-  console.log(
-    'data',
-    data.total_count,
-    data.incomplete_results,
-    data.items.length,
-    data.items
-      .map((item) => ({
-        title: item.title,
-        user: item.user.login,
-        is_pr: !!item.pull_request && !!item.draft,
-      }))
-      .filter((item) => !CORE_TEAM.includes(item.user))
-  )
-
   const startDate = new Date()
   startDate.setMonth(startDate.getMonth() - 12)
   startDate.setDate(1)
 
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < 12; i++) {
     const start = new Date(startDate)
     start.setMonth(startDate.getMonth() + i)
 
@@ -62,25 +43,36 @@ export default async () => {
 
     const range = formatDate(start) + '..' + formatDate(end)
 
-    const { data } = await octokit.rest.search.issuesAndPullRequests({
-      q: `is:issue repo:redwoodjs/redwood created:${range}`,
-    })
-
-    const filteredData = data.items.filter(
-      (item) =>
-        !CORE_TEAM.includes(item.user.login) &&
-        !(item.pull_request && item.draft)
+    const iterator = octokit.paginate.iterator(
+      octokit.rest.search.issuesAndPullRequests,
+      {
+        q: `is:pr repo:redwoodjs/redwood created:${range}`,
+        per_page: 100, // 100 seems to be the max
+      }
     )
 
-    if (i === 0) {
-      console.log(
-        'filteredData',
-        filteredData.map((item) => item.title)
-      )
+    const issuesAndPrs = []
+
+    for await (const page of iterator) {
+      for (const issueOrPr of page.data) {
+        if (
+          CORE_TEAM.includes(issueOrPr.user.login) ||
+          issueOrPr.user.login.endsWith('[bot]') ||
+          issueOrPr.draft
+        ) {
+          continue
+        }
+
+        issuesAndPrs.push({
+          title: issueOrPr.title,
+          user: issueOrPr.user.login,
+          is_pr: !!issueOrPr.pull_request,
+        })
+      }
     }
 
     const month = monthName(start)
     const year = start.getFullYear()
-    console.log(`PRs for ${month} ${year}`, filteredData.length)
+    console.log(`PRs for ${month} ${year}`, issuesAndPrs.length)
   }
 }
