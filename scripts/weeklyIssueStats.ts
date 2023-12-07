@@ -25,17 +25,6 @@ function formatDate(date: Date) {
   return `${date.getFullYear()}-${month}-${dayOfMonth}` as DateString
 }
 
-// Stats we want:
-// - Number of PRs opened previous week
-// - Number of PRs opened previous week by core team
-// - Number of PRs merged previous week
-// - Number of PRs closed previous week
-// - Number of Issues opened previous week
-// - Number of Issues closed previous week
-// - Number of Issues closed + p3 previous week
-// - The topics of the Issues opened previous week
-// - Median time it took to first reply to Issues opened previous week (Mon-Fri)
-
 export default async () => {
   console.log()
 
@@ -96,6 +85,10 @@ export default async () => {
   console.log('Issues closed last week', issuesClosedLastWeek)
   console.log('Issues labeled p3 last week', p3IssuesLastWeek)
   console.log()
+
+  // TODO:
+  // - The topics of the Issues opened previous week
+  // - Median time it took to first reply to Issues opened previous week (Mon-Fri)
 }
 
 function getLastWeek() {
