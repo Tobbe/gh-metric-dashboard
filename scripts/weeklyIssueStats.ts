@@ -28,6 +28,16 @@ function formatDate(date: Date) {
   return `${date.getFullYear()}-${month}-${dayOfMonth}` as DateString
 }
 
+function formatResponseTime(ms: number) {
+  const hours = Math.round(ms / 3_600_000)
+
+  if (hours > 0) {
+    return hours + 'h'
+  }
+
+  return Math.round(ms / 360_000) + 'm'
+}
+
 export default async () => {
   console.log()
 
@@ -71,9 +81,6 @@ export default async () => {
   const issueTopics: Record<string, Array<string>> = {}
 
   issues.forEach((issue) => {
-    // console.log()
-    // console.log('issue #', issue.number', 'labels', issue.labels)
-    // console.log()
     if (!issue.labels || !issue.labels.length) {
       issuesWithoutTopics.push(issue)
     } else {
@@ -96,6 +103,56 @@ export default async () => {
       }
     }
   })
+
+  const responseTimes = []
+  const responseTimesMF = []
+
+  issues.forEach((issue) => {
+    const createdAt = new Date(issue.created_at)
+    const closedAt = issue.closed_at ? new Date(issue.closed_at) : undefined
+    const firstReplyAt = issue.firstCoreTeamComment?.created_at
+      ? new Date(issue.firstCoreTeamComment.created_at)
+      : undefined
+
+    // Ignore issues that were opened by core team members. The purpose of
+    // tracking response times is to make sure that we're responding to
+    // community members in a timely manner.
+    if (CORE_TEAM.includes(issue.user.login)) {
+      return
+    }
+
+    // If the issue is closed, and it was closed before the first reply (or if
+    // there is no reply), then use the close time to calculate the response
+    // time.
+    if (
+      closedAt &&
+      (!firstReplyAt || closedAt.getTime() < firstReplyAt.getTime())
+    ) {
+      const responseTime = closedAt.getTime() - createdAt.getTime()
+      responseTimes.push(responseTime)
+
+      // Response time, Mon-Fri
+      if (closedAt.getDay() !== 0 && closedAt.getDay() !== 6) {
+        responseTimesMF.push(responseTime)
+      }
+    } else {
+      if (!firstReplyAt) {
+        responseTimes.push(-1)
+      } else {
+        // Response time in minutes
+        const responseTime = firstReplyAt.getTime() - createdAt.getTime()
+        responseTimes.push(responseTime)
+
+        // Response time, Mon-Fri
+        if (firstReplyAt.getDay() !== 0 && firstReplyAt.getDay() !== 6) {
+          responseTimesMF.push(responseTime)
+        }
+      }
+    }
+  })
+
+  const sumMF = responseTimesMF.reduce((a, b) => a + b, 0)
+  const averageMF = sumMF / responseTimesMF.length
 
   console.log()
   console.log(
@@ -121,12 +178,16 @@ export default async () => {
   console.log()
   console.log('Issue topics for last week')
   Object.entries(issueTopics).forEach(([topic, issues]) => {
-    console.log(topic, issues.length)
+    console.log(' ', topic, issues.length)
   })
   console.log('Issues missing topics:', issuesWithoutTopics)
-
-  // TODO:
-  // - Median time it took to first reply to Issues opened previous week (Mon-Fri)
+  console.log()
+  console.log(
+    'Response times last week',
+    responseTimes.map((t) => formatResponseTime(t)).join(', ')
+  )
+  console.log('  Average Mon-Fri', formatResponseTime(averageMF))
+  console.log()
 }
 
 function getLastWeek() {
@@ -178,7 +239,27 @@ async function getIssuesAndPRs(
         repo: 'redwood',
         issue_number: issueOrPr.number,
       })
-      issuesAndPrs.push(issue.data)
+
+      let firstCoreTeamComment = {}
+
+      if (!issueOrPr.pull_request) {
+        // TODO: Technically, we should paginate here, but for now, we'll just
+        // get the first page of comments. Hopefully, the first comment by a
+        // core team member will be on the first page.
+        const comments = await octokit.rest.issues.listComments({
+          owner: 'redwoodjs',
+          repo: 'redwood',
+          issue_number: issueOrPr.number,
+          per_page: 30,
+          page: 1,
+        })
+
+        firstCoreTeamComment = comments.data.find(
+          (comment) => comment.user && CORE_TEAM.includes(comment.user.login)
+        )
+      }
+
+      issuesAndPrs.push({ ...issue.data, firstCoreTeamComment })
     }
   }
 
