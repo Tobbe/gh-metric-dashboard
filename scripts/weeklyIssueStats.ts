@@ -62,6 +62,9 @@ export default async () => {
     startDate: lastWeek.start,
     endDate: lastWeek.end,
   })
+  const closedIssuesNumbers = closedIssuesAndPrs
+    .filter((issueOrPr) => !issueOrPr.pull_request)
+    .map((issue) => issue.number)
 
   const closedPrs = closedIssuesAndPrs.filter(
     (issueOrPr) => !!issueOrPr.pull_request
@@ -76,6 +79,9 @@ export default async () => {
     endDate: lastWeek.end,
     label: 'p3',
   })
+  const p3IssuesNumbers = p3IssuesAndPrs
+    .filter((issueOrPr) => !issueOrPr.pull_request)
+    .map((issue) => issue.number)
 
   const issuesWithoutTopics: Array<number> = []
   const issueTopics: Record<string, Array<string>> = {}
@@ -172,9 +178,19 @@ export default async () => {
   const p3IssuesLastWeek = p3IssuesAndPrs.filter(
     (issueOrPr) => !issueOrPr.pull_request
   ).length
+  const ongoingIssues = issues.filter((issue) => {
+    const isClosed = closedIssuesNumbers.includes(issue.number)
+    const isP3 = p3IssuesNumbers.includes(issue.number)
+
+    return !isClosed && !isP3
+  })
   console.log('Issues opened last week', issuesOpenedLastWeek)
   console.log('Issues closed last week', issuesClosedLastWeek)
   console.log('Issues labeled p3 last week', p3IssuesLastWeek)
+  console.log(
+    'Issues opened last week that are still ongoing (!closed && !p3)',
+    ongoingIssues.length
+  )
   console.log()
   console.log('Issue topics for last week')
   Object.entries(issueTopics).forEach(([topic, issues]) => {
