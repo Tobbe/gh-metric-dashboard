@@ -12,11 +12,14 @@ const CORE_TEAM = [
   'KrisCoulson',
 ]
 
-function monthName(date: Date) {
-  const { format } = new Intl.DateTimeFormat('en-US', { month: 'long' })
-  return format(new Date(date))
-}
-
+// This is called a "branded type" in TypeScript. It's a string, but it's
+// tagged with a special property that makes it different from a normal string.
+// This is useful for making sure that we don't accidentally pass a normal
+// string where a DateString is expected.
+/**
+ * A DateString is a string that we know is safe to pass to the GitHub API as a
+ * date.
+ */
 type DateString = string & { __isDateString: true }
 
 function formatDate(date: Date) {
@@ -41,6 +44,7 @@ export default async () => {
   })
 
   const prs = issuesAndPrs.filter((issueOrPr) => !!issueOrPr.pull_request)
+  const issues = issuesAndPrs.filter((issueOrPr) => !issueOrPr.pull_request)
   const coreTeamPrs = prs.filter((pr) => CORE_TEAM.includes(pr.user.login))
 
   const closedIssuesAndPrs = await getIssuesAndPRs(octokit, {
@@ -63,6 +67,36 @@ export default async () => {
     label: 'p3',
   })
 
+  const issuesWithoutTopics: Array<number> = []
+  const issueTopics: Record<string, Array<string>> = {}
+
+  issues.forEach((issue) => {
+    // console.log()
+    // console.log('issue #', issue.number', 'labels', issue.labels)
+    // console.log()
+    if (!issue.labels || !issue.labels.length) {
+      issuesWithoutTopics.push(issue)
+    } else {
+      let hasTopic = false
+
+      issue.labels.forEach((label) => {
+        if (label.name.startsWith('topic/')) {
+          hasTopic = true
+
+          if (!issueTopics[label.name]) {
+            issueTopics[label.name] = []
+          }
+
+          issueTopics[label.name].push(issue)
+        }
+      })
+
+      if (!hasTopic) {
+        issuesWithoutTopics.push(issue.number)
+      }
+    }
+  })
+
   console.log()
   console.log(
     `PRs and Issues for last week (${lastWeek.start} to ${lastWeek.end})`,
@@ -76,7 +110,7 @@ export default async () => {
   console.log('PRs closed last week', closedPrs.length)
   console.log('PRs by the Core Team closed last week', closedCoreTeamPrs.length)
 
-  const issuesOpenedLastWeek = issuesAndPrs.length - prs.length
+  const issuesOpenedLastWeek = issues.length
   const issuesClosedLastWeek = closedIssuesAndPrs.length - closedPrs.length
   const p3IssuesLastWeek = p3IssuesAndPrs.filter(
     (issueOrPr) => !issueOrPr.pull_request
@@ -85,9 +119,13 @@ export default async () => {
   console.log('Issues closed last week', issuesClosedLastWeek)
   console.log('Issues labeled p3 last week', p3IssuesLastWeek)
   console.log()
+  console.log('Issue topics for last week')
+  Object.entries(issueTopics).forEach(([topic, issues]) => {
+    console.log(topic, issues.length)
+  })
+  console.log('Issues missing topics:', issuesWithoutTopics)
 
   // TODO:
-  // - The topics of the Issues opened previous week
   // - Median time it took to first reply to Issues opened previous week (Mon-Fri)
 }
 
