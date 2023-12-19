@@ -88,7 +88,7 @@ export default async () => {
 
   issues.forEach((issue) => {
     if (!issue.labels || !issue.labels.length) {
-      issuesWithoutTopics.push(issue)
+      issuesWithoutTopics.push(issue.number)
     } else {
       let hasTopic = false
 
