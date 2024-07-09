@@ -42,7 +42,7 @@ export default async () => {
   console.log()
 
   const octokit = new Octokit({
-    auth: process.env.GITHUB_TOKEN,
+    auth: process.env.REDWOOD_GITHUB_TOKEN,
   })
 
   const lastWeek = getLastWeek()
@@ -208,7 +208,13 @@ export default async () => {
 
 function getLastWeek() {
   const end = new Date()
+
+  // Uncomment line below to temporarily go back one week (if a week was missed
+  // for example)
+  // end.setDate(end.getDate() - 14)
+
   // dayOfWeek, 1 (mon) to 7 (sun)
+  // (`|| 7` at the end turns 0 for Sunday into 7 for Sunday)
   const dayOfWeek = end.getDay() || 7
   // This will make endDate Sunday last week
   end.setDate(end.getDate() - dayOfWeek)
