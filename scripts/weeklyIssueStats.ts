@@ -158,7 +158,11 @@ export default async () => {
   })
 
   const sumMF = responseTimesMF.reduce((a, b) => a + b, 0)
-  const averageMF = sumMF / responseTimesMF.length
+  const averageMF = sumMF / (responseTimesMF.length || 1)
+  const averageMFFormatted =
+    responseTimesMF.length > 0
+      ? formatResponseTime(averageMF)
+      : 'N/A (0 issues)'
 
   console.log()
   console.log(
@@ -202,7 +206,7 @@ export default async () => {
     'Response times last week',
     responseTimes.map((t) => formatResponseTime(t)).join(', ')
   )
-  console.log('  Average Mon-Fri', formatResponseTime(averageMF))
+  console.log('  Average Mon-Fri', averageMFFormatted)
   console.log()
 }
 
@@ -211,7 +215,7 @@ function getLastWeek() {
 
   // Uncomment line below to temporarily go back one week (if a week was missed
   // for example)
-  // end.setDate(end.getDate() - 14)
+  // end.setDate(end.getDate() - 7)
 
   // dayOfWeek, 1 (mon) to 7 (sun)
   // (`|| 7` at the end turns 0 for Sunday into 7 for Sunday)
