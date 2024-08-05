@@ -12,6 +12,8 @@ const CORE_TEAM = [
   'KrisCoulson',
   'orta',
   'arimendelow',
+  'peterp',
+  'callingmedic911',
 ]
 
 const HOUR_IN_MS = 60 * 60 * 1000

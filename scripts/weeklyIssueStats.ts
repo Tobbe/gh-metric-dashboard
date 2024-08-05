@@ -10,6 +10,8 @@ const CORE_TEAM = [
   'ahaywood',
   'thedavidprice',
   'KrisCoulson',
+  'peterp',
+  'callingmedic911',
 ]
 
 // This is called a "branded type" in TypeScript. It's a string, but it's
