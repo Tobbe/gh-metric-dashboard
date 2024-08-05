@@ -93,9 +93,12 @@ export default async () => {
       issuesWithoutTopics.push(issue.number)
     } else {
       let hasTopic = false
+      let isSprintPlanning = false
 
-      issue.labels.forEach((label) => {
-        if (label.name.startsWith('topic/')) {
+      issue.labels.forEach((label: { name: string }) => {
+        if (label.name === 'sprint-planning') {
+          isSprintPlanning = true
+        } else if (label.name.startsWith('topic/')) {
           hasTopic = true
 
           if (!issueTopics[label.name]) {
@@ -106,7 +109,7 @@ export default async () => {
         }
       })
 
-      if (!hasTopic) {
+      if (!hasTopic && !isSprintPlanning) {
         issuesWithoutTopics.push(issue.number)
       }
     }
