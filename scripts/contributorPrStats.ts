@@ -42,11 +42,6 @@ export default async () => {
 
     const lastComment = pr.comments.at(-1)
 
-    if (CORE_TEAM.includes(lastComment?.user?.login)) {
-      console.log('Waiting for PR author to respond')
-      return
-    }
-
     let waitingTimeMs: number
 
     if (!lastComment) {
@@ -61,9 +56,27 @@ export default async () => {
     const waitingTimeHours = Math.round(waitingTimeMs / HOUR_IN_MS)
 
     if (waitingTimeHours > 48) {
-      console.log('Waiting time:', Math.round(waitingTimeHours / 24), 'days')
+      const waitingTimeDays = Math.round(waitingTimeHours / 24)
+
+      if (CORE_TEAM.includes(lastComment?.user?.login)) {
+        console.log(
+          'Waiting for',
+          waitingTimeDays,
+          'days for PR author to respond'
+        )
+      } else {
+        console.log('Contributor has been waiting:', waitingTimeDays, 'days')
+      }
     } else {
-      console.log('Waiting time:', waitingTimeHours, 'hours')
+      if (CORE_TEAM.includes(lastComment?.user?.login)) {
+        console.log(
+          'Waiting for',
+          waitingTimeHours,
+          'hours for PR author to respond'
+        )
+      } else {
+        console.log('Contributor has been waiting:', waitingTimeHours, 'hours')
+      }
     }
   })
 
